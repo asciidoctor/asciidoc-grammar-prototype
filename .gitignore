@@ -6,5 +6,4 @@ tmp/
 gradle-app.setting
 *.iml
 *.jar
-
-!gradle-wrapper.jar
+bin/

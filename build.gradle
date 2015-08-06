@@ -1,8 +1,11 @@
+import groovy.io.FileType
+
 plugins {
     id 'java'
     id 'groovy'
     id 'antlr'
-    id 'net.nemerosa.versioning' version '1.4.0'
+    id 'de.undercouch.download' version '1.2'
+    id 'net.nemerosa.versioning' version '1.5.0'
 }
 
 apply from: 'gradle/helpers.gradle'
@@ -15,25 +18,75 @@ sourceCompatibility = 1.6
 targetCompatibility = 1.6
 
 repositories {
-    mavenLocal()
-    mavenCentral()
+//    mavenLocal()
+//    mavenCentral()
     jcenter()
 }
 
 dependencies {
     compile 'org.slf4j:slf4j-api:1.7.12'
-    antlr 'org.antlr:antlr4:4.5'
+    antlr 'org.antlr:antlr4:4.5.1'
 
-    testCompile 'org.codehaus.groovy:groovy-all:2.4.3'
-    testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
+    testCompile 'org.codehaus.groovy:groovy-all:2.3.11'
+    testCompile 'org.spockframework:spock-core:1.0-groovy-2.3'
 }
 
 jar {
     manifest {
-        attributes(
-            'Built-Date': currentDate(),
-            'Implementation-Version': version,
+        attributes (
+            'Built-By': System.properties['user.name'],
+            'Created-By': "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})".toString(),
+            'Build-Date': buildDateOnly,
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.version,
+            'Implementation-Vendor': 'asciidoctor.org',
             'Implementation-Build': versioning.info.commit
         )
     }
+}
+
+generateGrammarSource {
+    group "${project.name}"
+    description 'Generates the parser code based on the grammar'
+
+    outputDirectory = file("${outputDirectory}/org/asciidoctor/parser")
+}
+
+task downloadExamples << {
+    group "${project.name}"
+    description 'Fetchs some AsciiDoc files from GitHub to test the grammar'
+
+    [
+        'asciidoctor-maven-examples',
+        'asciidoctor-maven-plugin',
+        'asciidoctor-gradle-plugin'
+    ]. each { projectName ->
+        download {
+            src "https://raw.githubusercontent.com/asciidoctor/${projectName}/master/README.adoc"
+            dest file("src/test/resources/${projectName}.adoc")
+        }
+    }
+}
+
+file('src/test/resources')?.eachFileMatch(FileType.FILES, (~/.*.adoc/) ) { File f ->
+    task "inspectTree->${f.name}"(type: JavaExec) {
+        dependsOn generateGrammarSource
+        group "${project.name}"
+        description "Parses and shows the tree for '${f.name}'"
+
+        main = 'org.antlr.v4.runtime.misc.TestRig'
+        classpath = sourceSets.main.runtimeClasspath
+        args = [
+            'org.asciidoctor.parser.Asciidoc',
+            'document',
+            '-encoding UFT-8',
+            '-gui',
+            f.absolutePath
+        ]
+        workingDir = file("build/classes/main")
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.4'
 }
