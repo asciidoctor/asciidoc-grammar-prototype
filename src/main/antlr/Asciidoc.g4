@@ -9,7 +9,7 @@ document        : header preamble body ;
 // NOTE: "You cannot have a revision line without an author line."
 header          : document_title author_line? revision_line? attributes? NEW_LINE  ;
 
-document_title  : '=' phrase NEW_LINE ;
+document_title  : '=' sentence NEW_LINE ;
 author_line     : CHARS CHARS '<' email '>' NEW_LINE ;
  // based on example v1.0, 2014-01-01
 revision_line   : 'v' NUMBERS '.' NUMBERS NEW_LINE ;
@@ -32,8 +32,9 @@ target          : IDENTIFIER ;
 param           : word ;
 
 // See http://www.regular-expressions.info/email.html for a better representation of an email
-email           : CHARS '@' CHARS '.' (CHARS) ; // 
-phrase          : word* NEW_LINE ;
+email           : CHARS '@' CHARS '.' (CHARS) ; //
+sentence        : word* ;
+phrase          : word* NEW_LINE;
 special_characters : '$' | '/' | '-'; // Temporal fix to avoid failing on URLs
 attribute_substitution :  '{' preset_attributes '}' ;
 // See http://asciidoctor.org/docs/user-manual/#built-in-data-attributes
